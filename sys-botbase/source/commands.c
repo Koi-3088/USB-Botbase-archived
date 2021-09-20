@@ -14,12 +14,12 @@ Mutex actionLock;
 bool bControllerIsInitialised = false;
 time_t curTime = 0;
 time_t origTime = 0;
-int resetSkips = 0;
 HiddbgHdlsHandle controllerHandle = {0};
 HiddbgHdlsDeviceInfo controllerDevice = {0};
 HiddbgHdlsState controllerState = {0};
 Handle debughandle = 0;
 u64 buttonClickSleepTime = 50;
+HiddbgHdlsSessionId sessionId = { 0 };
 
 void attach()
 {
@@ -38,6 +38,22 @@ void attach()
 void detach(){
     if (debughandle != 0)
         svcCloseHandle(debughandle);
+}
+
+void detachController()
+{
+    initController();
+
+    Result rc = hiddbgDetachHdlsVirtualDevice(controllerHandle);
+    if (R_FAILED(rc) && debugResultCodes)
+        printf("hiddbgDetachHdlsVirtualDevice: %d\n", rc);
+    rc = hiddbgReleaseHdlsWorkBuffer(sessionId);
+    if (R_FAILED(rc) && debugResultCodes)
+        printf("hiddbgReleaseHdlsWorkBuffer: %d\n", rc);
+    hiddbgExit();
+    bControllerIsInitialised = false;
+
+    sessionId.id = 0;
 }
 
 u64 getMainNsoBase(u64 pid){
@@ -138,7 +154,7 @@ void initController()
     controllerState.analog_stick_l.y = -0x0;
     controllerState.analog_stick_r.x = 0x0;
     controllerState.analog_stick_r.y = -0x0;
-    rc = hiddbgAttachHdlsWorkBuffer();
+    rc = hiddbgAttachHdlsWorkBuffer(&sessionId);
     if (R_FAILED(rc) && debugResultCodes)
         fatalThrow(rc);
     rc = hiddbgAttachHdlsVirtualDevice(&controllerHandle, &controllerDevice);
@@ -146,8 +162,6 @@ void initController()
         fatalThrow(rc);
     bControllerIsInitialised = true;
 }
-
-
 
 void poke(u64 offset, u64 size, u8* val)
 {
@@ -204,54 +218,57 @@ void setStickState(int side, int dxVal, int dyVal)
     hiddbgSetHdlsState(controllerHandle, &controllerState);
 }
 
-void dateSkip(int resetTimeAfterSkips, int resetNTP)
+void dateSkip()
 {
-    if(origTime == 0)
+    if (origTime == 0)
     {
         Result ot = timeGetCurrentTime(TimeType_UserSystemClock, (u64*)&origTime);
-        if(R_FAILED(ot))
+        if (R_FAILED(ot))
             fatalThrow(ot);
     }
 
     Result tg = timeGetCurrentTime(TimeType_UserSystemClock, (u64*)&curTime); //Current system time
-    if(R_FAILED(tg))
+    if (R_FAILED(tg))
         fatalThrow(tg);
 
     Result ts = timeSetCurrentTime(TimeType_NetworkSystemClock, (uint64_t)(curTime + 86400)); //Set new time
-    if(R_FAILED(ts))
+    if (R_FAILED(ts))
         fatalThrow(ts);
-
-    resetSkips++;
-    if(resetNTP == 0 && resetTimeAfterSkips != 0 && (resetTimeAfterSkips == resetSkips)) //Reset time after # of skips
-        resetTime();
-    else if(resetNTP != 0 && resetTimeAfterSkips != 0 && (resetTimeAfterSkips == resetSkips))
-        resetTimeNTP();
 }
 
 void resetTime()
 {
-    if(curTime == 0)
+    if (curTime == 0)
     {
         Result ct = timeGetCurrentTime(TimeType_UserSystemClock, (u64*)&curTime); //Current system time
-        if(R_FAILED(ct))
+        if (R_FAILED(ct))
             fatalThrow(ct);
     }
 
-    resetSkips = 0;
+    if (origTime == 0)
+    {
+        Result ct = timeGetCurrentTime(TimeType_UserSystemClock, (u64*)&origTime);
+        if (R_FAILED(ct))
+            fatalThrow(ct);
+    }
+
     struct tm currentTime = *localtime(&curTime);
     struct tm timeReset = *localtime(&origTime);
     timeReset.tm_hour = currentTime.tm_hour;
     timeReset.tm_min = currentTime.tm_min;
     timeReset.tm_sec = currentTime.tm_sec;
     Result rt = timeSetCurrentTime(TimeType_NetworkSystemClock, mktime(&timeReset));
-    if(R_FAILED(rt))
+    curTime = 0;
+    origTime = 0;
+    if (R_FAILED(rt))
         fatalThrow(rt);
 }
 
 void resetTimeNTP()
 {
-    resetSkips = 0;
+    curTime = 0;
+    origTime = 0;
     Result ts = timeSetCurrentTime(TimeType_NetworkSystemClock, ntpGetTime());
-    if(R_FAILED(ts))
+    if (R_FAILED(ts))
         fatalThrow(ts);
 }

@@ -17,6 +17,7 @@ typedef struct {
 
 void attach();
 void detach();
+void detachController();
 u64 getMainNsoBase(u64 pid);
 u64 getHeapBase(Handle handle);
 u64 getTitleId(u64 pid);
@@ -29,6 +30,6 @@ void click(HidNpadButton btn);
 void press(HidNpadButton btn);
 void release(HidNpadButton btn);
 void setStickState(int side, int dxVal, int dyVal);
-void dateSkip(int resetTimeAfterSkips, int resetNTP);
+void dateSkip();
 void resetTime();
 void resetTimeNTP();

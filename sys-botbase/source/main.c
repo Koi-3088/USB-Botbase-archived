@@ -272,14 +272,7 @@ int argmain(int argc, char **argv)
     //detachController
     if(!strcmp(argv[0], "detachController"))
     {
-        Result rc = hiddbgDetachHdlsVirtualDevice(controllerHandle);
-        if (R_FAILED(rc) && debugResultCodes)
-            fatalThrow(rc);
-        rc = hiddbgReleaseHdlsWorkBuffer();
-        if (R_FAILED(rc) && debugResultCodes)
-            fatalThrow(rc);
-        hiddbgExit();
-        bControllerIsInitialised = false;
+        detachController();
     }
 
     //configure <mainLoopSleepTime or buttonClickSleepTime> <time in ms>
@@ -369,17 +362,13 @@ int argmain(int argc, char **argv)
         free(buf);
     }
 
-    if(!strcmp(argv[0], "daySkip"))
-    {
-        int resetTimeAfterSkips = parseStringToInt(argv[1]);
-        int resetNTP = parseStringToInt(argv[2]);
-        dateSkip(resetTimeAfterSkips, resetNTP);
-    }
+    if (!strcmp(argv[0], "daySkip"))
+        dateSkip();
 
-    if(!strcmp(argv[0], "resetTime"))
+    if (!strcmp(argv[0], "resetTime"))
         resetTime();
 
-    if(!strcmp(argv[0], "resetTimeNTP"))
+    if (!strcmp(argv[0], "resetTimeNTP"))
         resetTimeNTP();
 
     return 0;
