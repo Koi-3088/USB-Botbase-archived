@@ -549,7 +549,7 @@ int argmain(int argc, char **argv)
     if(!strcmp(argv[0], "getVersion")){
         if (usb)
         {
-            char* buf = malloc(sizeof("2.2\n"));
+            char* buf = "2.2";
             response.data = &buf[0];
             response.size = sizeof(buf);
             sendUsbResponse(response);
