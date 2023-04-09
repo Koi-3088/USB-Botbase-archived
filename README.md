@@ -1,3 +1,5 @@
+>***NOTE: you should now go to [this repository here](https://github.com/Koi-3088/usb-botbase) for an up-to-date usb-botbase. They were  both essentially the same thing so there wasn't much point in maintaining both. It's still the same usb-botbase, except with an option to switch between usb and wifi.***
+
 # sys-botbase based on jakibakis sys-netcheat
 The purpose of this sys-module is to allow users to remote control their switch via wifi connection as well as to read and write to a games memory. This can be used to create bots for games and other fun automation projects.
 
